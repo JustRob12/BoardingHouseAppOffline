@@ -7,9 +7,9 @@ import {
   FlatList,
   Dimensions,
   Platform,
-  SafeAreaView,
   Alert
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Calendar, DollarSign, Clock, User, Home, CheckCircle2, AlertCircle, BookOpen } from 'lucide-react-native';
 import { Colors } from '../constants/Colors';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -27,38 +27,69 @@ const TenantRecordScreen = () => {
   const [utilityBills, setUtilityBills] = useState<any[]>([]);
   const [activeFilter, setActiveFilter] = useState<'Rent' | 'Electric' | 'Water'>('Rent');
   const [loading, setLoading] = useState(true);
+  const [totalPaid, setTotalPaid] = useState(0);
 
   useEffect(() => {
     loadData();
   }, []);
 
+  const calculateSummary = (statuses: Record<string, string>, bills: any[], currentRoomAmount: string) => {
+    let total = 0;
+    const cleanAmount = (val: any) => {
+      if (!val) return 0;
+      if (typeof val === 'number') return val;
+      const cleaned = val.toString().replace(/[^0-9.]/g, '');
+      return parseFloat(cleaned) || 0;
+    };
+
+    Object.keys(statuses).forEach(key => {
+      if (statuses[key] === 'Paid') {
+        const [type, datePart] = key.split('_');
+        if (type === 'Rent') {
+          total += cleanAmount(currentRoomAmount);
+        } else if (type === 'Electric' || type === 'Water') {
+          const [y, m, d] = datePart.split('-').map(Number);
+          const bill = bills.find(b => b.month === m && b.year === y);
+          if (bill) {
+            total += cleanAmount(type === 'Electric' ? bill.electricity : bill.water);
+          }
+        }
+      }
+    });
+    setTotalPaid(total);
+  };
+
   const loadData = async () => {
     try {
-      // Load payment statuses
-      const paymentData = await AsyncStorage.getItem(`payments_${tenant.id}`);
-      if (paymentData) {
-        setPaymentStatuses(JSON.parse(paymentData));
-      }
-
-      // Load utility bills
+      // Load utility bills first to use in summary
       const utilityData = await AsyncStorage.getItem('utility_bills');
+      let currentBills: any[] = [];
       if (utilityData) {
         const allUtilityBills = JSON.parse(utilityData);
-        // Filter bills for this tenant's room
-        const roomBills = allUtilityBills.filter((b: any) => b.roomId === tenant.roomId);
-        setUtilityBills(roomBills);
+        currentBills = allUtilityBills.filter((b: any) => b.roomId === tenant.roomId);
+        setUtilityBills(currentBills);
       }
 
       // Load live room amount
+      let currentRoomAmount = tenant.roomAmount || '0';
       if (tenant.roomId) {
         const roomsData = await AsyncStorage.getItem('rooms');
         if (roomsData) {
           const rooms = JSON.parse(roomsData);
           const currentRoom = rooms.find((r: any) => r.id === tenant.roomId);
           if (currentRoom && currentRoom.amount) {
-            setRoomAmount(currentRoom.amount);
+            currentRoomAmount = currentRoom.amount;
+            setRoomAmount(currentRoomAmount);
           }
         }
+      }
+
+      // Load payment statuses and calculate summary
+      const paymentData = await AsyncStorage.getItem(`payments_${tenant.id}`);
+      if (paymentData) {
+        const statuses = JSON.parse(paymentData);
+        setPaymentStatuses(statuses);
+        calculateSummary(statuses, currentBills, currentRoomAmount);
       }
     } catch (error) {
       console.error('Error loading data:', error);
@@ -80,6 +111,9 @@ const TenantRecordScreen = () => {
       
       setPaymentStatuses(updatedStatuses);
       await AsyncStorage.setItem(`payments_${tenant.id}`, JSON.stringify(updatedStatuses));
+      
+      // Recalculate summary
+      calculateSummary(updatedStatuses, utilityBills, roomAmount);
     } catch (error) {
       Alert.alert('Error', 'Failed to update payment status.');
     }
@@ -230,6 +264,19 @@ const TenantRecordScreen = () => {
         <View style={{ width: 40 }} />
       </View>
 
+      {/* Summary Card */}
+      <View style={styles.summaryContainer}>
+        <View style={styles.summaryCard}>
+          <View style={styles.summaryInfo}>
+            <Text style={styles.summaryLabel}>Total Paid</Text>
+            <Text style={styles.summaryValue}>₱{totalPaid.toLocaleString()}</Text>
+          </View>
+          <View style={styles.summaryIcon}>
+            <DollarSign color={Colors.white} size={24} />
+          </View>
+        </View>
+      </View>
+
       <View style={styles.filterTabs}>
         {(['Rent', 'Electric', 'Water'] as const).map((filter) => (
           <TouchableOpacity 
@@ -304,6 +351,48 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.secondary,
     fontWeight: '600',
+  },
+  summaryContainer: {
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    backgroundColor: Colors.white,
+  },
+  summaryCard: {
+    backgroundColor: Colors.primary,
+    borderRadius: 20,
+    padding: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    elevation: 4,
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  summaryInfo: {
+    flex: 1,
+  },
+  summaryLabel: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 14,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  summaryValue: {
+    color: Colors.white,
+    fontSize: 28,
+    fontWeight: '900',
+    marginTop: 4,
+  },
+  summaryIcon: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   filterTabs: {
     flexDirection: 'row',

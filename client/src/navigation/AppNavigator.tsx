@@ -10,6 +10,7 @@ import {
   Settings
 } from 'lucide-react-native';
 import { Colors } from '../constants/Colors';
+import { useTheme } from '../context/ThemeContext';
 
 import DashboardScreen from '../screens/DashboardScreen';
 import RoomsScreen from '../screens/RoomsScreen';
@@ -29,123 +30,84 @@ import TenantRecordScreen from '../screens/TenantRecordScreen';
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 
-const CustomTabButton = ({ onPress, label }: any) => {
-  const state = useNavigationState(state => state);
-  const activeIndex = state?.index;
-  const activeRouteName = state?.routeNames[activeIndex];
-  const selected = activeRouteName === 'Tenants';
+const CustomTabBar = ({ state, descriptors, navigation }: any) => {
+  const { colors } = useTheme();
+  
+  const renderTabButton = (route: any, index: number) => {
+    const isFocused = state.index === index;
+    const onPress = () => {
+      const event = navigation.emit({
+        type: 'tabPress',
+        target: route.key,
+        canPreventDefault: true,
+      });
+      if (!isFocused && !event.defaultPrevented) {
+        navigation.navigate(route.name);
+      }
+    };
+
+    const Icon = () => {
+      const color = isFocused ? colors.primary : colors.secondary;
+      const size = 22;
+      switch (route.name) {
+        case 'Home': return <LayoutDashboard color={color} size={size} />;
+        case 'Rooms': return <DoorOpen color={color} size={size} />;
+        case 'Tenants': return <Users color={color} size={size} />;
+        case 'Bills': return <BookOpen color={color} size={size} />;
+        case 'System': return <Settings color={color} size={size} />;
+        default: return null;
+      }
+    };
+
+    return (
+      <TouchableOpacity
+        key={route.name}
+        onPress={onPress}
+        style={styles.tabButton}
+      >
+        <Icon />
+        <Text style={[styles.tabLabelBottom, { color: isFocused ? colors.primary : colors.secondary }]}>
+          {route.name}
+        </Text>
+      </TouchableOpacity>
+    );
+  };
 
   return (
-    <TouchableOpacity
-      activeOpacity={0.7}
-      onPress={onPress}
-      style={{
-        top: -20,
-        justifyContent: 'center',
-        alignItems: 'center',
-        ...styles.shadow
-      }}
-    >
-      <View
-        style={{
-          width: 70,
-          height: 70,
-          borderRadius: 35,
-          backgroundColor: selected ? Colors.primary : Colors.white,
-          borderWidth: selected ? 0 : 2,
-          borderColor: Colors.primary,
-          justifyContent: 'center',
-          alignItems: 'center',
-          paddingTop: 5
-        }}
-      >
-        <Users color={selected ? Colors.white : Colors.primary} size={24} />
-        <Text
-          style={{
-            color: selected ? Colors.white : Colors.primary,
-            fontSize: 10,
-            fontWeight: 'bold',
-            marginTop: 2
-          }}
-        >
-          {label}
-        </Text>
+    <View style={styles.tabBarContainer}>
+      {/* Left Container: Main Navigation Group */}
+      <View style={[styles.leftGroupContainer, { backgroundColor: colors.white, borderColor: colors.border }]}>
+        {state.routes.map((route: any, index: number) => {
+          if (route.name === 'Tenants') return null;
+          return renderTabButton(route, index);
+        })}
       </View>
-    </TouchableOpacity>
+
+      {/* Right Container: Tenants Only */}
+      <View style={[styles.rightSoloContainer, { backgroundColor: colors.white, borderColor: colors.border }]}>
+        {state.routes.map((route: any, index: number) => {
+          if (route.name !== 'Tenants') return null;
+          return renderTabButton(route, index);
+        })}
+      </View>
+    </View>
   );
 };
 
 const MainTabNavigator = () => {
   return (
     <Tab.Navigator
+      tabBar={props => <CustomTabBar {...props} />}
       screenOptions={{
         headerShown: true,
         header: () => <Header />,
-        tabBarStyle: {
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          backgroundColor: Colors.white,
-          borderTopWidth: 1,
-          borderTopColor: Colors.border,
-          height: 70,
-          paddingBottom: Platform.OS === 'ios' ? 20 : 10,
-          ...styles.shadow
-        },
-        tabBarActiveTintColor: Colors.primary,
-        tabBarInactiveTintColor: Colors.secondary,
-        tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '500',
-        }
       }}
     >
-      <Tab.Screen
-        name="Home"
-        component={DashboardScreen}
-        options={{
-          tabBarIcon: ({ color, size }) => (
-            <LayoutDashboard color={color} size={size} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Rooms"
-        component={RoomsScreen}
-        options={{
-          tabBarIcon: ({ color, size }) => (
-            <DoorOpen color={color} size={size} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Tenants"
-        component={TenantsScreen}
-        options={{
-          tabBarButton: (props) => (
-            <CustomTabButton {...props} label="Tenants" />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Bills"
-        component={LedgerScreen}
-        options={{
-          tabBarIcon: ({ color, size }) => (
-            <BookOpen color={color} size={size} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="System"
-        component={SystemScreen}
-        options={{
-          tabBarIcon: ({ color, size }) => (
-            <Settings color={color} size={size} />
-          ),
-        }}
-      />
+      <Tab.Screen name="Home" component={DashboardScreen} />
+      <Tab.Screen name="Rooms" component={RoomsScreen} />
+      <Tab.Screen name="Tenants" component={TenantsScreen} />
+      <Tab.Screen name="Bills" component={LedgerScreen} />
+      <Tab.Screen name="System" component={SystemScreen} />
     </Tab.Navigator>
   );
 };
@@ -177,6 +139,69 @@ const AppNavigator = () => {
 };
 
 const styles = StyleSheet.create({
+  tabBarContainer: {
+    position: 'absolute',
+    bottom: Platform.OS === 'ios' ? 30 : 20,
+    left: 15,
+    right: 15,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'transparent',
+  },
+  leftGroupContainer: {
+    flex: 1,
+    marginRight: 12,
+    paddingHorizontal: 5,
+    paddingVertical: 8,
+    borderRadius: 25,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 10,
+      },
+      android: {
+        elevation: 8,
+      },
+    }),
+    borderWidth: 1,
+  },
+  rightSoloContainer: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 25,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 70,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 10,
+      },
+      android: {
+        elevation: 8,
+      },
+    }),
+    borderWidth: 1,
+  },
+  tabButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  tabLabelBottom: {
+    fontSize: 9,
+    fontWeight: 'bold',
+    marginTop: 4,
+  },
   shadow: {
     shadowColor: '#000',
     shadowOffset: {

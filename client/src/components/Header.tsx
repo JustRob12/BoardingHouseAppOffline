@@ -8,39 +8,56 @@ import {
   Platform,
   TouchableWithoutFeedback
 } from 'react-native';
-import { User, Settings, Moon, ChevronDown, Bell } from 'lucide-react-native';
+import { User, Settings, Moon, ChevronDown, Bell, Sun } from 'lucide-react-native';
 import { Colors } from '../constants/Colors';
+import { useTheme } from '../context/ThemeContext';
 
 const Header = () => {
+  const { isDarkMode, toggleTheme, colors } = useTheme();
   const [menuVisible, setMenuVisible] = useState(false);
 
   const toggleMenu = () => setMenuVisible(!menuVisible);
   const closeMenu = () => setMenuVisible(false);
 
+  const handleToggleTheme = () => {
+    toggleTheme();
+  };
+
+  const getTodayDate = () => {
+    const options: Intl.DateTimeFormatOptions = { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric' 
+    };
+    return new Intl.DateTimeFormat('en-US', options).format(new Date());
+  };
+
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.white, borderBottomColor: colors.border }]}>
       <View style={styles.container}>
-        {/* Left Side: App Title */}
+        {/* Left Side: App Title & Date */}
         <View style={styles.leftSection}>
-          <Text style={styles.logoText}>BHouse</Text>
+          <Text style={[styles.logoText, { color: colors.primary }]}>BHouse</Text>
+          <Text style={[styles.dateText, { color: colors.secondary }]}>{getTodayDate()}</Text>
         </View>
 
         {/* Right Side: Notification & Profile */}
         <View style={styles.rightSection}>
           <TouchableOpacity style={styles.iconButton}>
-            <Bell color={Colors.secondary} size={22} />
-            <View style={styles.badge} />
+            <Bell color={colors.secondary} size={22} />
+            <View style={[styles.badge, { borderColor: colors.white }]} />
           </TouchableOpacity>
 
           <TouchableOpacity 
-            style={styles.profileButton} 
+            style={[styles.profileButton, { backgroundColor: isDarkMode ? colors.border : '#F0F2F5' }]} 
             onPress={toggleMenu}
             activeOpacity={0.7}
           >
-            <View style={styles.avatarContainer}>
-              <User color={Colors.primary} size={18} />
+            <View style={[styles.avatarContainer, { backgroundColor: colors.white }]}>
+              <User color={colors.primary} size={18} />
             </View>
-            <ChevronDown color={Colors.secondary} size={14} />
+            <ChevronDown color={colors.secondary} size={14} />
           </TouchableOpacity>
         </View>
 
@@ -50,17 +67,23 @@ const Header = () => {
             <TouchableWithoutFeedback onPress={closeMenu}>
               <View style={styles.overlay} />
             </TouchableWithoutFeedback>
-            <View style={styles.dropdownMenu}>
+            <View style={[styles.dropdownMenu, { backgroundColor: colors.white, borderColor: colors.border }]}>
               <TouchableOpacity style={styles.menuItem} onPress={closeMenu}>
-                <Settings color={Colors.secondary} size={18} />
-                <Text style={styles.menuText}>Settings</Text>
+                <Settings color={colors.secondary} size={18} />
+                <Text style={[styles.menuText, { color: colors.text }]}>Settings</Text>
               </TouchableOpacity>
               
-              <View style={styles.divider} />
+              <View style={[styles.divider, { backgroundColor: colors.border }]} />
               
-              <TouchableOpacity style={styles.menuItem} onPress={closeMenu}>
-                <Moon color={Colors.secondary} size={18} />
-                <Text style={styles.menuText}>Dark Mode</Text>
+              <TouchableOpacity style={styles.menuItem} onPress={handleToggleTheme}>
+                {isDarkMode ? (
+                  <Sun color={colors.accent} size={18} />
+                ) : (
+                  <Moon color={colors.secondary} size={18} />
+                )}
+                <Text style={[styles.menuText, { color: colors.text }]}>
+                  {isDarkMode ? 'Light Mode' : 'Dark Mode'}
+                </Text>
               </TouchableOpacity>
             </View>
           </>
@@ -87,14 +110,20 @@ const styles = StyleSheet.create({
     zIndex: 1000,
   },
   leftSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'column',
+    justifyContent: 'center',
   },
   logoText: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '900',
     color: Colors.primary,
     letterSpacing: 0.5,
+    lineHeight: 22,
+  },
+  dateText: {
+    fontSize: 11,
+    fontWeight: '600',
+    marginTop: 1,
   },
   rightSection: {
     flexDirection: 'row',

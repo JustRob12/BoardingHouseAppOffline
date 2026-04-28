@@ -14,11 +14,15 @@ import {
 import { Plus, BookOpen, Droplets, Zap, Home, Calendar, X, Trash2, ChevronRight, ChevronLeft } from 'lucide-react-native';
 import { Colors } from '../constants/Colors';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useRoute, useNavigation } from '@react-navigation/native';
+import { useTheme } from '../context/ThemeContext';
 
 const { width } = Dimensions.get('window');
 
 const LedgerScreen = () => {
+  const { isDarkMode, colors } = useTheme();
+  const route = useRoute<any>();
+  const navigation = useNavigation<any>();
   const [bills, setBills] = useState<any[]>([]);
   const [rooms, setRooms] = useState<any[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
@@ -50,7 +54,15 @@ const LedgerScreen = () => {
   useFocusEffect(
     useCallback(() => {
       loadData();
-    }, [])
+      
+      // Check if we should open the add modal
+      if (route.params?.showAddModal) {
+        resetForm();
+        setModalVisible(true);
+        // Clear the param so it doesn't open again on next focus
+        navigation.setParams({ showAddModal: undefined });
+      }
+    }, [route.params?.showAddModal])
   );
 
   const handleEditBill = (bill: any) => {
@@ -142,14 +154,14 @@ const LedgerScreen = () => {
   });
 
   const renderBillItem = ({ item }: { item: any }) => (
-    <TouchableOpacity style={styles.billCard} onPress={() => handleEditBill(item)} activeOpacity={0.7}>
-      <View style={styles.billHeader}>
-        <View style={styles.roomIconContainer}>
-          <Home color={Colors.primary} size={20} />
+    <TouchableOpacity style={[styles.billCard, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => handleEditBill(item)} activeOpacity={0.7}>
+      <View style={[styles.billHeader, { borderBottomColor: isDarkMode ? colors.border : '#F0F2F5' }]}>
+        <View style={[styles.roomIconContainer, { backgroundColor: isDarkMode ? colors.border : '#F0F5FF' }]}>
+          <Home color={colors.primary} size={20} />
         </View>
         <View style={{ flex: 1, marginLeft: 12 }}>
-          <Text style={styles.billRoomTitle}>{item.roomTitle}</Text>
-          <Text style={styles.billDate}>
+          <Text style={[styles.billRoomTitle, { color: colors.text }]}>{item.roomTitle}</Text>
+          <Text style={[styles.billDate, { color: colors.secondary }]}>
             {new Date(item.year, item.month - 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
           </Text>
         </View>
@@ -161,45 +173,53 @@ const LedgerScreen = () => {
       <View style={styles.billDetails}>
         <View style={styles.detailItem}>
           <Zap color="#FFAB00" size={16} />
-          <Text style={styles.detailLabel}>Electricity:</Text>
-          <Text style={styles.detailValue}>₱{item.electricity}</Text>
+          <Text style={[styles.detailLabel, { color: colors.secondary }]}>Electricity:</Text>
+          <Text style={[styles.detailValue, { color: colors.text }]}>₱{item.electricity}</Text>
         </View>
         <View style={styles.detailItem}>
           <Droplets color="#0052CC" size={16} />
-          <Text style={styles.detailLabel}>Water:</Text>
-          <Text style={styles.detailValue}>₱{item.water}</Text>
+          <Text style={[styles.detailLabel, { color: colors.secondary }]}>Water:</Text>
+          <Text style={[styles.detailValue, { color: colors.text }]}>₱{item.water}</Text>
         </View>
       </View>
     </TouchableOpacity>
   );
 
   return (
-    <View style={styles.container}>
-      <View style={styles.filterSection}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.filterSection, { backgroundColor: colors.white, borderBottomColor: colors.border }]}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.monthFilterScroll}>
           <TouchableOpacity 
-            style={[styles.filterMonthChip, filterMonth === 'All' && styles.filterMonthChipActive]}
+            style={[
+              styles.filterMonthChip, 
+              { backgroundColor: isDarkMode ? colors.border : '#F0F2F5', borderColor: colors.border },
+              filterMonth === 'All' && { backgroundColor: colors.primary, borderColor: colors.primary }
+            ]}
             onPress={() => setFilterMonth('All')}
           >
-            <Text style={[styles.filterMonthChipText, filterMonth === 'All' && styles.filterMonthChipTextActive]}>All</Text>
+            <Text style={[styles.filterMonthChipText, { color: colors.secondary }, filterMonth === 'All' && { color: '#FFF' }]}>All</Text>
           </TouchableOpacity>
           {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map((m, idx) => (
             <TouchableOpacity 
               key={m}
-              style={[styles.filterMonthChip, filterMonth === idx + 1 && styles.filterMonthChipActive]}
+              style={[
+                styles.filterMonthChip, 
+                { backgroundColor: isDarkMode ? colors.border : '#F0F2F5', borderColor: colors.border },
+                filterMonth === idx + 1 && { backgroundColor: colors.primary, borderColor: colors.primary }
+              ]}
               onPress={() => setFilterMonth(idx + 1)}
             >
-              <Text style={[styles.filterMonthChipText, filterMonth === idx + 1 && styles.filterMonthChipTextActive]}>{m}</Text>
+              <Text style={[styles.filterMonthChipText, { color: colors.secondary }, filterMonth === idx + 1 && { color: '#FFF' }]}>{m}</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
         <View style={styles.yearFilterContainer}>
           <TouchableOpacity onPress={() => setFilterYear(filterYear - 1)}>
-            <ChevronLeft color={Colors.secondary} size={20} />
+            <ChevronLeft color={colors.secondary} size={20} />
           </TouchableOpacity>
-          <Text style={styles.yearText}>{filterYear}</Text>
+          <Text style={[styles.yearText, { color: colors.text }]}>{filterYear}</Text>
           <TouchableOpacity onPress={() => setFilterYear(filterYear + 1)}>
-            <ChevronRight color={Colors.secondary} size={20} />
+            <ChevronRight color={colors.secondary} size={20} />
           </TouchableOpacity>
         </View>
       </View>
@@ -211,8 +231,8 @@ const LedgerScreen = () => {
         contentContainerStyle={styles.listContent}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <BookOpen color={Colors.border} size={60} />
-            <Text style={styles.emptyText}>No utility bills recorded yet.</Text>
+            <BookOpen color={colors.border} size={60} />
+            <Text style={[styles.emptyText, { color: colors.secondary }]}>No utility bills recorded yet.</Text>
           </View>
         }
       />
@@ -231,24 +251,28 @@ const LedgerScreen = () => {
         onRequestClose={() => setModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, { backgroundColor: colors.white }]}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{editingBill ? 'Edit Utility Bill' : 'Add Utility Bill'}</Text>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>{editingBill ? 'Edit Utility Bill' : 'Add Utility Bill'}</Text>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <X color={Colors.secondary} size={24} />
+                <X color={colors.secondary} size={24} />
               </TouchableOpacity>
             </View>
 
             <ScrollView style={styles.formContent}>
-              <Text style={styles.label}>Select Room</Text>
+              <Text style={[styles.label, { color: colors.secondary }]}>Select Room</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.roomPicker}>
                 {rooms.map(room => (
                   <TouchableOpacity 
                     key={room.id}
-                    style={[styles.roomChip, selectedRoom?.id === room.id && styles.roomChipActive]}
+                    style={[
+                      styles.roomChip, 
+                      { backgroundColor: isDarkMode ? colors.border : '#F0F2F5', borderColor: colors.border },
+                      selectedRoom?.id === room.id && { backgroundColor: colors.primary, borderColor: colors.primary }
+                    ]}
                     onPress={() => setSelectedRoom(room)}
                   >
-                    <Text style={[styles.roomChipText, selectedRoom?.id === room.id && styles.roomChipTextActive]}>
+                    <Text style={[styles.roomChipText, { color: colors.text }, selectedRoom?.id === room.id && { color: '#FFF' }]}>
                       {room.title}
                     </Text>
                   </TouchableOpacity>
@@ -257,12 +281,13 @@ const LedgerScreen = () => {
 
               <View style={styles.inputRow}>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.label}>Electricity (₱)</Text>
-                  <View style={styles.inputWrapper}>
+                  <Text style={[styles.label, { color: colors.secondary }]}>Electricity (₱)</Text>
+                  <View style={[styles.inputWrapper, { backgroundColor: isDarkMode ? colors.background : '#F8F9FA', borderColor: colors.border }]}>
                     <Zap color="#FFAB00" size={18} style={{ marginRight: 8 }} />
                     <TextInput
-                      style={styles.input}
+                      style={[styles.input, { color: colors.text }]}
                       placeholder="0.00"
+                      placeholderTextColor={colors.secondary}
                       keyboardType="numeric"
                       value={electricity}
                       onChangeText={setElectricity}
@@ -270,12 +295,13 @@ const LedgerScreen = () => {
                   </View>
                 </View>
                 <View style={{ flex: 1, marginLeft: 15 }}>
-                  <Text style={styles.label}>Water (₱)</Text>
-                  <View style={styles.inputWrapper}>
+                  <Text style={[styles.label, { color: colors.secondary }]}>Water (₱)</Text>
+                  <View style={[styles.inputWrapper, { backgroundColor: isDarkMode ? colors.background : '#F8F9FA', borderColor: colors.border }]}>
                     <Droplets color="#0052CC" size={18} style={{ marginRight: 8 }} />
                     <TextInput
-                      style={styles.input}
+                      style={[styles.input, { color: colors.text }]}
                       placeholder="0.00"
+                      placeholderTextColor={colors.secondary}
                       keyboardType="numeric"
                       value={water}
                       onChangeText={setWater}
@@ -284,21 +310,25 @@ const LedgerScreen = () => {
                 </View>
               </View>
 
-              <Text style={styles.label}>For the Month of</Text>
+              <Text style={[styles.label, { color: colors.secondary }]}>For the Month of</Text>
               <View style={styles.monthGrid}>
                 {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map((m, idx) => (
                   <TouchableOpacity 
                     key={m}
-                    style={[styles.monthChip, month === idx + 1 && styles.monthChipActive]}
+                    style={[
+                      styles.monthChip, 
+                      { backgroundColor: isDarkMode ? colors.border : '#F0F2F5', borderColor: colors.border },
+                      month === idx + 1 && { backgroundColor: colors.primary, borderColor: colors.primary }
+                    ]}
                     onPress={() => setMonth(idx + 1)}
                   >
-                    <Text style={[styles.monthChipText, month === idx + 1 && styles.monthChipTextActive]}>{m}</Text>
+                    <Text style={[styles.monthChipText, { color: colors.text }, month === idx + 1 && { color: '#FFF' }]}>{m}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
             </ScrollView>
 
-            <TouchableOpacity style={styles.saveButton} onPress={handleSaveBill}>
+            <TouchableOpacity style={[styles.saveButton, { backgroundColor: colors.primary }]} onPress={handleSaveBill}>
               <Text style={styles.saveButtonText}>Save Record</Text>
             </TouchableOpacity>
           </View>

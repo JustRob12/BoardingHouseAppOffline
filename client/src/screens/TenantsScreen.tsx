@@ -14,14 +14,16 @@ import {
   TextInput
 } from 'react-native';
 import { Plus, User, Phone, Mail, Search, Home, MoreVertical, Eye, X, FileText, Clock, DollarSign, Calendar } from 'lucide-react-native';
-import { Colors } from '../constants/Colors';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Colors } from '../constants/Colors';
+import { useTheme } from '../context/ThemeContext';
 import * as Clipboard from 'expo-clipboard';
 
 const { width } = Dimensions.get('window');
 
 const TenantsScreen = () => {
+  const { isDarkMode, colors } = useTheme();
   const navigation = useNavigation<any>();
   const [tenants, setTenants] = useState<any[]>([]);
   const [allTenants, setAllTenants] = useState<any[]>([]);
@@ -108,62 +110,63 @@ const TenantsScreen = () => {
   };
 
   const renderTenantCard = ({ item }: { item: any }) => (
-    <TouchableOpacity style={styles.tenantCard} onPress={() => openModal(item)}>
-      <View style={styles.cardHeader}>
+    <TouchableOpacity style={[styles.tenantCard, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => openModal(item)}>
+      <View style={[styles.cardHeader, { borderBottomColor: colors.border }]}>
         {item.image ? (
           <Image source={{ uri: item.image }} style={styles.avatar} />
         ) : (
-          <View style={styles.avatarPlaceholder}>
-            <User color={Colors.secondary} size={24} />
+          <View style={[styles.avatarPlaceholder, { backgroundColor: isDarkMode ? colors.border : '#F0F2F5' }]}>
+            <User color={colors.secondary} size={24} />
           </View>
         )}
         <View style={styles.headerInfo}>
-          <Text style={styles.tenantName}>{item.name}</Text>
-          <Text style={styles.tenantAge}>{item.age} Years Old • {item.birthday}</Text>
+          <Text style={[styles.tenantName, { color: colors.text }]}>{item.name}</Text>
+          <Text style={[styles.tenantAge, { color: colors.secondary }]}>{item.age} Years Old • {item.birthday}</Text>
           {item.roomTitle && (
-            <View style={styles.roomBadge}>
-              <Home color={Colors.primary} size={10} />
-              <Text style={styles.roomBadgeText}>{item.roomTitle}</Text>
+            <View style={[styles.roomBadge, { backgroundColor: isDarkMode ? colors.border : '#F0F2F5' }]}>
+              <Home color={colors.primary} size={10} />
+              <Text style={[styles.roomBadgeText, { color: colors.primary }]}>{item.roomTitle}</Text>
             </View>
           )}
         </View>
-        <MoreVertical color={Colors.secondary} size={20} />
+        <MoreVertical color={colors.secondary} size={20} />
       </View>
 
       <View style={styles.cardFooter}>
         <View style={styles.contactItem}>
-          <Phone color={Colors.primary} size={14} />
-          <Text style={styles.contactText}>{item.phone}</Text>
+          <Phone color={colors.primary} size={14} />
+          <Text style={[styles.contactText, { color: colors.text }]}>{item.phone}</Text>
         </View>
         <View style={styles.contactItem}>
-          <Mail color={Colors.primary} size={14} />
-          <Text style={styles.contactText} numberOfLines={1}>{item.email || 'No email'}</Text>
+          <Mail color={colors.primary} size={14} />
+          <Text style={[styles.contactText, { color: colors.text }]} numberOfLines={1}>{item.email || 'No email'}</Text>
         </View>
       </View>
     </TouchableOpacity>
   );
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.headerContainer}>
         {isSearching ? (
-          <View style={styles.searchBarContainer}>
+          <View style={[styles.searchBarContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <TextInput
-              style={styles.searchInput}
+              style={[styles.searchInput, { color: colors.text }]}
               placeholder="Search by name or phone..."
+              placeholderTextColor={colors.secondary}
               value={searchQuery}
               onChangeText={handleSearch}
               autoFocus
             />
             <TouchableOpacity onPress={() => { setIsSearching(false); handleSearch(''); }}>
-              <X color={Colors.secondary} size={20} />
+              <X color={colors.secondary} size={20} />
             </TouchableOpacity>
           </View>
         ) : (
           <>
-            <Text style={styles.mainTitle}>Tenants</Text>
-            <TouchableOpacity style={styles.searchButton} onPress={() => setIsSearching(true)}>
-              <Search color={Colors.secondary} size={20} />
+            <Text style={[styles.mainTitle, { color: colors.text }]}>Tenants</Text>
+            <TouchableOpacity style={[styles.searchButton, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => setIsSearching(true)}>
+              <Search color={colors.secondary} size={20} />
             </TouchableOpacity>
           </>
         )}
@@ -176,10 +179,10 @@ const TenantsScreen = () => {
         contentContainerStyle={styles.listContent}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <User color={Colors.border} size={60} />
-            <Text style={styles.emptyText}>No tenants registered yet.</Text>
+            <User color={colors.border} size={60} />
+            <Text style={[styles.emptyText, { color: colors.secondary }]}>No tenants registered yet.</Text>
             <TouchableOpacity 
-              style={styles.emptyButton}
+              style={[styles.emptyButton, { backgroundColor: colors.primary }]}
               onPress={() => navigation.navigate('AddTenant')}
             >
               <Text style={styles.emptyButtonText}>Add Your First Tenant</Text>
@@ -207,45 +210,45 @@ const TenantsScreen = () => {
           activeOpacity={1} 
           onPress={() => setModalVisible(false)}
         >
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>{selectedTenant?.name}</Text>
+          <View style={[styles.modalContent, { backgroundColor: colors.white }]}>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>{selectedTenant?.name}</Text>
             
             <TouchableOpacity 
-              style={styles.modalOption} 
+              style={[styles.modalOption, { borderBottomColor: colors.border }]} 
               onPress={() => {
                 setModalVisible(false);
                 navigation.navigate('TenantDetail', { tenant: selectedTenant });
               }}
             >
-              <Eye color={Colors.primary} size={20} />
-              <Text style={styles.modalOptionText}>View Details</Text>
+              <Eye color={colors.primary} size={20} />
+              <Text style={[styles.modalOptionText, { color: colors.text }]}>View Details</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 
-              style={styles.modalOption} 
+              style={[styles.modalOption, { borderBottomColor: colors.border }]} 
               onPress={() => handleCopy(selectedTenant?.phone, 'Phone number')}
             >
-              <Phone color={Colors.primary} size={20} />
-              <Text style={styles.modalOptionText}>Call (Copy Number)</Text>
+              <Phone color={colors.primary} size={20} />
+              <Text style={[styles.modalOptionText, { color: colors.text }]}>Call (Copy Number)</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 
-              style={styles.modalOption} 
+              style={[styles.modalOption, { borderBottomColor: colors.border }]} 
               onPress={() => {
                 setModalVisible(false);
                 navigation.navigate('TenantRecord', { tenant: selectedTenant });
               }}
             >
-              <FileText color={Colors.primary} size={20} />
-              <Text style={styles.modalOptionText}>View Record</Text>
+              <FileText color={colors.primary} size={20} />
+              <Text style={[styles.modalOptionText, { color: colors.text }]}>View Record</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 
-              style={styles.modalOption} 
+              style={[styles.modalOption, { borderBottomColor: colors.border }]} 
               onPress={() => handleCopy(selectedTenant?.email, 'Email address')}
             >
-              <Mail color={Colors.primary} size={20} />
-              <Text style={styles.modalOptionText}>Message (Copy Email)</Text>
+              <Mail color={colors.primary} size={20} />
+              <Text style={[styles.modalOptionText, { color: colors.text }]}>Message (Copy Email)</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 

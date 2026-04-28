@@ -11,14 +11,16 @@ import {
   Image
 } from 'react-native';
 import { Home, Plus, Eye, Users, User } from 'lucide-react-native';
-import { Colors } from '../constants/Colors';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Colors } from '../constants/Colors';
+import { useTheme } from '../context/ThemeContext';
 
 const { width } = Dimensions.get('window');
 const COLUMN_WIDTH = (width - 50) / 2;
 
 const RoomsScreen = () => {
+  const { isDarkMode, colors } = useTheme();
   const navigation = useNavigation<any>();
   const [sections, setSections] = useState<any[]>([]);
   const [allRooms, setAllRooms] = useState<any[]>([]);
@@ -110,6 +112,7 @@ const RoomsScreen = () => {
         key={room.id}
         style={[
           styles.roomCard, 
+          { backgroundColor: colors.card, borderColor: colors.border },
           isFull && styles.roomCardFull,
           isMaintenance && styles.roomCardMaintenance
         ]}
@@ -117,40 +120,40 @@ const RoomsScreen = () => {
       >
         <View style={styles.cardContent}>
           <View style={{ flex: 1, paddingRight: 10 }}>
-            <Text style={[styles.roomTitle, isFull && styles.whiteText, isMaintenance && styles.whiteText]} numberOfLines={1}>
+            <Text style={[styles.roomTitle, { color: colors.text }, (isFull || isMaintenance) && styles.whiteText]} numberOfLines={1}>
               {room.title}
             </Text>
-            <Text style={[styles.cardPrice, isFull && styles.whiteText, isMaintenance && styles.whiteText]}>
+            <Text style={[styles.cardPrice, { color: colors.primary }, (isFull || isMaintenance) && styles.whiteText]}>
               ₱{room.amount}
             </Text>
             {room.tenants && room.tenants.length > 0 ? (
               <View style={styles.miniAvatarsRow}>
                 {room.tenants.slice(0, 3).map((tenant: any) => (
-                  <View key={tenant.id} style={styles.miniAvatarContainer}>
+                  <View key={tenant.id} style={[styles.miniAvatarContainer, { backgroundColor: isDarkMode ? colors.border : '#F0F2F5', borderColor: isFull || isMaintenance ? (isFull ? '#FF4D4F' : '#FFC107') : colors.card }]}>
                     {tenant.image ? (
                       <Image source={{ uri: tenant.image }} style={styles.miniAvatar} />
                     ) : (
-                      <User color={Colors.secondary} size={8} />
+                      <User color={colors.secondary} size={8} />
                     )}
                   </View>
                 ))}
                 {room.tenants.length > 3 && (
-                  <Text style={[styles.moreTenants, (isFull || isMaintenance) && styles.whiteText]}>
+                  <Text style={[styles.moreTenants, (isFull || isMaintenance) && styles.whiteText, !(isFull || isMaintenance) && { color: colors.secondary }]}>
                     +{room.tenants.length - 3}
                   </Text>
                 )}
               </View>
             ) : (
-              <Text style={[styles.noTenantText, isFull && styles.whiteText, isMaintenance && { color: '#856404' }]}>
+              <Text style={[styles.noTenantText, isFull && styles.whiteText, isMaintenance && { color: '#856404' }, !(isFull || isMaintenance) && { color: colors.secondary }]}>
                 No Tenant yet
               </Text>
             )}
           </View>
           <View style={styles.paxSideContainer}>
-            <Text style={[styles.paxNumber, (isFull || isMaintenance) && styles.whiteText]}>
+            <Text style={[styles.paxNumber, (isFull || isMaintenance) ? styles.whiteText : { color: colors.primary }]}>
               {isMaintenance ? '!' : room.remainingPax}
             </Text>
-            <Text style={[styles.paxLabel, (isFull || isMaintenance) && styles.whiteText]}>
+            <Text style={[styles.paxLabel, (isFull || isMaintenance) ? styles.whiteText : { color: colors.secondary }]}>
               {isMaintenance ? 'MNT' : 'PAX'}
             </Text>
           </View>
@@ -167,17 +170,21 @@ const RoomsScreen = () => {
   );
 
   return (
-    <View style={styles.container}>
-      <View style={styles.headerArea}>
-        <Text style={styles.mainTitle}>Rooms</Text>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.headerArea, { backgroundColor: colors.background }]}>
+        <Text style={[styles.mainTitle, { color: colors.text }]}>Rooms</Text>
         <View style={styles.filterContainer}>
           {['All', 'Vacant', 'Occupied', 'Maintenance'].map((f) => (
             <TouchableOpacity
               key={f}
-              style={[styles.filterChip, activeFilter === f && styles.filterChipActive]}
+              style={[
+                styles.filterChip, 
+                { backgroundColor: colors.card, borderColor: colors.border },
+                activeFilter === f && { backgroundColor: colors.primary, borderColor: colors.primary }
+              ]}
               onPress={() => handleFilterChange(f)}
             >
-              <Text style={[styles.filterText, activeFilter === f && styles.filterTextActive]}>
+              <Text style={[styles.filterText, { color: colors.secondary }, activeFilter === f && { color: '#FFF' }]}>
                 {f}
               </Text>
             </TouchableOpacity>
@@ -190,9 +197,9 @@ const RoomsScreen = () => {
         keyExtractor={(item, index) => (item[0]?.id || index).toString()}
         renderItem={renderRow}
         renderSectionHeader={({ section: { title } }) => (
-          <View style={styles.sectionHeader}>
-            <Home color={Colors.primary} size={14} style={{ marginRight: 6 }} />
-            <Text style={styles.sectionHeaderText}>
+          <View style={[styles.sectionHeader, { backgroundColor: colors.background }]}>
+            <Home color={colors.primary} size={14} style={{ marginRight: 6 }} />
+            <Text style={[styles.sectionHeaderText, { color: colors.primary }]}>
               {title}
             </Text>
           </View>
@@ -200,8 +207,8 @@ const RoomsScreen = () => {
         contentContainerStyle={styles.listContent}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Home color={Colors.border} size={60} />
-            <Text style={styles.emptyText}>No rooms added yet.</Text>
+            <Home color={colors.border} size={60} />
+            <Text style={[styles.emptyText, { color: colors.secondary }]}>No rooms added yet.</Text>
           </View>
         }
       />
@@ -226,11 +233,11 @@ const RoomsScreen = () => {
           activeOpacity={1} 
           onPress={() => setChoiceModalVisible(false)}
         >
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>{selectedRoom?.title}</Text>
+          <View style={[styles.modalContent, { backgroundColor: colors.white }]}>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>{selectedRoom?.title}</Text>
             
             <TouchableOpacity 
-              style={styles.modalOption} 
+              style={[styles.modalOption, { borderBottomColor: colors.border }]} 
               onPress={() => {
                 setChoiceModalVisible(false);
                 navigation.navigate('RoomTenants', { 
@@ -239,19 +246,19 @@ const RoomsScreen = () => {
                 });
               }}
             >
-              <Users color={Colors.primary} size={22} />
-              <Text style={styles.modalOptionText}>View Tenants</Text>
+              <Users color={colors.primary} size={22} />
+              <Text style={[styles.modalOptionText, { color: colors.text }]}>View Tenants</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 
-              style={styles.modalOption} 
+              style={[styles.modalOption, { borderBottomColor: colors.border }]} 
               onPress={() => {
                 setChoiceModalVisible(false);
                 navigation.navigate('RoomDetail', { room: selectedRoom });
               }}
             >
-              <Eye color={Colors.primary} size={22} />
-              <Text style={styles.modalOptionText}>View Room Details</Text>
+              <Eye color={colors.primary} size={22} />
+              <Text style={[styles.modalOptionText, { color: colors.text }]}>View Room Details</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 
